@@ -10,38 +10,50 @@ const token = localStorage.getItem('token');
 
 export default function ReportPage() {
   const [reportData, setReportData] = useState("");
-  const [res, setRes] = useState([])  
+  const [res, setRes] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState("pdf");
 
   const allFields = [
     { _id: "1", orderId: "orderNo", orderField: "Order Number" },
     { _id: "2", orderId: "orderDate", orderField: "Order Date" },
     { _id: "3", orderId: "orderAmount", orderField: "Order Amount" },
     { _id: "4", orderId: "customerIds", orderField: "Customer Name" },
-    { _id: "5", orderId: "salesPersonIds", orderField: "Sales Person Name" }
+    { _id: "5", orderId: "salesPersonIds", orderField: "Salesperson Name" },
   ];
 
   const initialValues = {
     fromDate: "",
     toDate: "",
-    fields: []
+    fields: [],
+    reportType: "",
+    granularity: "month",
+    salesperson: "",
+    customer: "",
+    city: "",
   };
 
-  const validationSchema = Yup.object({
-    fromDate: Yup.string().required("From date is required"),
-    toDate: Yup.string().required("To date is required"),
+const validationSchema = Yup.object({
+    fromDate: Yup.string(),
+    // .required("From date is required"),
+    toDate: Yup.string(),
+    // .required("To date is required"),
     fields: Yup.array()
     .of(
-      Yup.object().shape({
+      Yup.object().shape({  
         orderId: Yup.string()
           .required('Field is required')
       })
     )
-    .min(1, 'Select at least one field')
+    // .min(1, 'Select at least one field')
     .test('unique-orderId', 'Duplicate field selected', function (value) {
       const ids = value?.map(v => v.orderId);
       return ids.length === new Set(ids).size;
-    })
+    }),
+    reportType: Yup.string(),
+    // .required("Required"), 
+    granularity: Yup.string()
+    // .required("Required")
   });
 
   const generateBlobData = (response)=>{
@@ -61,6 +73,8 @@ export default function ReportPage() {
           fromDate: values.fromDate,
           toDate: values.toDate,
           fields: matchedFields,
+          reportType:values.reportType,
+          timeGranularity: values.granularity,
         },
         {
           headers: {
@@ -129,7 +143,7 @@ export default function ReportPage() {
                 {touched.fromDate && errors.fromDate && (
                   <div className="text-red-500 text-sm">{errors.fromDate}</div>
                 )}
-              </div>  
+              </div>
               <div className="flex flex-col">
                 <label htmlFor="toDate">To Date</label>
                 <Field
@@ -151,7 +165,37 @@ export default function ReportPage() {
                 />  
                 </div>
             </div>
-
+            <div>
+            <label>Report Type:</label>
+            <Field
+              as="select"
+              name="reportType"
+              className="w-full p-2 border"
+            >
+              <option value="">Select...</option>
+                  <option value="sales_by_salesperson">Salesperson Contribution</option>
+                  <option value="sales_summary">Sales Summary</option>
+                  <option value="top_customers">Top Customers</option>
+                  <option value="orders_summary">Orders Summary</option>
+            </Field>
+            {touched.reportType && errors.reportType && (
+              <div className="text-red-600 text-sm">{errors.reportType}</div>
+            )}
+          </div>  
+        <div>
+          <label>Time Granularity:</label>
+          <Field
+            as="select"
+            name="granularity"
+            className="w-full p-2 border"
+          >
+          <option value="">Select...</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </Field>
+        </div>
             <button
               type="submit"
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
@@ -214,3 +258,4 @@ export default function ReportPage() {
     </> 
   );
 } 
+

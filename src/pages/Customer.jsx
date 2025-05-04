@@ -10,6 +10,7 @@ import CustomTable from '../components/CustomTable';
 import MultiSelectField from '../components/MultiSelectField';
 import Swal from 'sweetalert2';
 import formatDateToDDMMYYYY from '../components/helpers/dateFormat';
+import Dropdown from '../components/dropdown';
 const token = localStorage.getItem("token")
 
 const Customer = () => {
@@ -33,7 +34,7 @@ const Customer = () => {
         Authorization:`Bearer ${token}`
       }
     });
-    setSalesPersons(res?.data || []);   
+    setSalesPersons(res?.data || []);
   };
 
   useEffect(() => {
@@ -43,21 +44,15 @@ const Customer = () => {
 
   const handleSubmit = async (values, { resetForm }) => {
     try{
-    const payload = {
-        ...values,
-        salesPersonIds: values.salesPersonIds.map(id => ({
-            ...id
-          }))
-      };
     if (selectedCustomer) {
-      await axios.put(API_END_POINTS.customer.update, payload, {
+      await axios.put(API_END_POINTS.customer.update, values, {
         params: { id: selectedCustomer._id },
         headers: {
           Authorization: `Bearer ${token}`,         
         },
     });
     } else {
-      await axios.post(API_END_POINTS.customer.create, payload,{
+      await axios.post(API_END_POINTS.customer.create, values,{
         headers:{
           Authorization:`Bearer ${token}`
         }
@@ -116,27 +111,10 @@ const Customer = () => {
       .matches(/^[a-zA-Z\s]+$/, 'City can only contain letters')
       .min(2, 'City must be at least 2 characters')
       .max(50, 'City cannot exceed 50 characters'),
-    salesPersonIds: Yup.array()
-      .of(
-        Yup.object().shape({
-          salesPersId: Yup.string()
-            .required('SalesPerson is required')
-        })
-      )
-      .min(1, 'At least one SalesPerson is required')
-      .test('unique-salesPersId', 'Duplicate SalesPerson selected', function (value) {
-        console.log({value})
-        if (!value) return true;
-
-        const ids = value.map(v => {
-          if (typeof v.salesPersId === 'object' && v.salesPersId !== null && v.salesPersId._id) {
-            return v.salesPersId._id;
-          }
-          return v.salesPersId;
-        });
-  
-        return ids.length === new Set(ids).size;
-      })  
+    salesPersonIds: Yup.object().shape({
+      salesPersId: Yup.string()
+        .required('SalesPerson is required')
+    }),
   });
 
   const columns = [
@@ -158,20 +136,13 @@ const Customer = () => {
           </div>
         </div>
         <div className="bg-gray-50 p-4 rounded shadow">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2 uppercase">Salespersons ({row.salesPersonIds.length})</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2 uppercase">Salespersons</h3>
           <div className="flex flex-wrap gap-2">
-            {row.salesPersonIds.length > 0 ? (
-              row.salesPersonIds.map((item, index) => (
                 <span
-                  key={item._id}
                   className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold uppercase"
                 >
-                  {item.salesPersId?.salesPersonName || 'N/A'}
+                  {row?.salesPersonIds?.salesPersId?.salesPersonName || 'N/A'}
                 </span>
-              ))
-            ) : (
-              <span className="text-sm text-gray-500">No sales persons</span>
-            )}
           </div>
         </div>
         <div className="bg-gray-50 p-4 rounded shadow">
@@ -196,10 +167,13 @@ const Customer = () => {
   };  
 
   const formatOnEdit = (row)=>{
-    const data = {...row, salesPersonIds:row.salesPersonIds.map((ele)=>({salesPersId:ele.salesPersId._id})) }
-    console.log(data)
+    const data = {...row,
+      salesPersonIds:{salesPersId:row?.salesPersonIds?.salesPersId?._id}}
+    console.log("row",data)
     return data
   }
+
+  console.log(customer)
 
   return (
     <>
@@ -237,7 +211,7 @@ const Customer = () => {
 
             <Formik
                 initialValues={
-                selectedCustomer && formatOnEdit(selectedCustomer) || { customerNo: '', customerName: '', city: '', salesPersonIds: [] }
+                selectedCustomer && formatOnEdit(selectedCustomer) || { customerNo: '', customerName: '', city: '', salesPersonIds: {} }
               } 
               validationSchema={validationSchema}
               onSubmit={handleSubmit}
@@ -259,12 +233,19 @@ const Customer = () => {
                   <Field name="city" className="w-full border px-3 py-2 rounded" />
                   <ErrorMessage name="city" component="div" className="text-red-500 text-sm" />
                 </div>
-                <MultiSelectField
+                {/* <MultiSelectField
                     name="salesPersonIds"
                     label="Sales Persons"
                     options={salesPersons}
                     keyId="salesPersId"
                     keyName="salesPersonName"
+                /> */}
+                <Dropdown
+                  name="salesPersonIds"
+                  label="Sales Person"
+                  options={salesPersons}
+                  keyId="salesPersId"
+                  keyName="salesPersonName"
                 />
                 <div className="flex justify-end">
                   <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">

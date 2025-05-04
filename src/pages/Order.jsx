@@ -10,6 +10,7 @@ import CustomTable from '../components/CustomTable';
 import MultiSelectField from '../components/MultiSelectField';
 import Swal from 'sweetalert2';
 import formatDateToDDMMYYYY from '../components/helpers/dateFormat';
+import Dropdown from '../components/dropdown';
 const token = localStorage.getItem("token")
 
 const Order = () => {
@@ -54,24 +55,24 @@ const Order = () => {
 
   const handleSubmit = async (values, { resetForm }) => {
     try{
-      const payload = {
-        ...values,
-        salesPersonIds: values.salesPersonIds.map(id => ({
-            ...id
-          })),
-        customerIds: values.customerIds.map(id => ({
-            ...id
-          }))
-      };
+      // const payload = {
+      //   ...values,
+      //   salesPersonIds: values.salesPersonIds.map(id => ({
+      //       ...id
+      //     })),
+      //   customerIds: values.customerIds.map(id => ({
+      //       ...id
+      //     }))
+      // };
     if (selectedOrder) {
-      await axios.put(API_END_POINTS.order.update, payload,{
+      await axios.put(API_END_POINTS.order.update, values,{
         params: {id:selectedOrder._id},
         headers:{
           Authorization:`Bearer ${token}`
         }
       });
     } else {
-      await axios.post(API_END_POINTS.order.create, payload,{
+      await axios.post(API_END_POINTS.order.create, values,{
         headers:{
           Authorization:`Bearer ${token}`
         }
@@ -126,45 +127,14 @@ const Order = () => {
       .required('Order Amount is required')
       .matches(/^\d/g, "Only numbers allowed") 
       .typeError('Order Amount must be a number'),
-    salesPersonIds: Yup.array()
-      .of(
-        Yup.object().shape({
-          salesPersId: Yup.string()
-            .required('SalesPerson is required')
-            .matches(/^[0-9a-fA-F]{24}$/, 'Invalid SalesPerson ID')
-        })
-      )
-      .min(1, 'At least one SalesPerson is required')
-      .test('unique-salesPersId', 'Duplicate SalesPerson selected', function (value) {
-        const ids = value.map(v => {
-          if (typeof v.salesPersId === 'object' && v.salesPersId !== null && v.salesPersId._id) {
-            return v.salesPersId._id;
-          }
-          return v.salesPersId;
-        });
-        return ids.length === new Set(ids).size;
+    salesPersonIds: Yup.object().shape({
+        salesPersId: Yup.string()
+        .required('SalesPerson is required')
       }),
-      customerIds:Yup.array()
-      .of(
-        Yup.object().shape({
-          custId: Yup.string()
-            .required('Customers is required')
-            .matches(/^[0-9a-fA-F]{24}$/, 'Invalid Customer ID')
-        })
-      )
-      .min(1, 'At least one Customer is required')
-      .test('unique-custId', 'Duplicate Customer selected', function (value) {
-        // const ids = value?.map(v => v.custId);
-        // return ids.length === new Set(ids).size;
-        const ids = value.map(v => {
-          if (typeof v.custId === 'object' && v.custId !== null && v.custId._id) {
-            return v.custId._id;
-          } 
-          return v.custId;
-        });
-  
-        return ids.length === new Set(ids).size;
-      })
+    customerIds: Yup.object().shape({
+        custId: Yup.string()
+          .required('Customer is required')
+      }),     
   });
 
   const columns = [
@@ -183,43 +153,29 @@ const Order = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
             <p className="uppercase"><span className="font-medium">Order No:</span> {row.orderNo}</p>
             <p className="uppercase"><span className="font-medium">Order Date:</span> {formatDateToDDMMYYYY(row.orderDate)}</p>
-            <p className="uppercase"><span className="font-medium">Order Amount:</span> ₹{row.orderAmount}</p>
+            <p className="uppercase"><span className="font-medium uppercase">Order Amount:</span> ₹ {row.orderAmount}</p>
           </div>
         </div>
   
         <div className="bg-gray-50 p-4 rounded shadow">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2 uppercase">Salespersons ({row.salesPersonIds.length})</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2 uppercase">Salespersons</h3>
           <div className="flex flex-wrap gap-2">
-            {row.salesPersonIds.length > 0 ? (
-              row.salesPersonIds.map((item, index) => (
-                <span
-                  key={index}
-                  className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold uppercase"
-                >
-                  {item.salesPersId?.salesPersonName || 'N/A'}
-                </span>
-              ))
-            ) : (
-              <span className="text-sm text-gray-500">No sales persons</span>
-            )}
+              <span
+                className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold uppercase"
+              >
+                {row?.salesPersonIds?.salesPersId?.salesPersonName || 'N/A'}
+              </span>
           </div>
         </div>
   
         <div className="bg-gray-50 p-4 rounded shadow">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2 uppercase">Customers ({row.customerIds.length})</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2 uppercase">Customers </h3>
           <div className="flex flex-wrap gap-2">
-            {row.customerIds.length > 0 ? (
-              row.customerIds.map((item, index) => (
-                <span
-                  key={index}
-                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold uppercase"
-                >
-                  {item.custId?.customerName || 'N/A'}
-                </span>
-              ))
-            ) : (
-              <span className="text-sm text-gray-500">No customers</span>
-            )}
+              <span
+                className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold uppercase"
+              >
+                {row.customerIds.custId?.customerName || 'N/A'}
+              </span>
           </div>
         </div>  
       </div>
@@ -228,13 +184,11 @@ const Order = () => {
 
 
   const formatOnEdit = (row)=>{
-    console.log({row})
     const data = {
       ...row, 
-      salesPersonIds:row.salesPersonIds.map((ele)=>({salesPersId:ele.salesPersId._id})), 
-      customerIds:row.customerIds.map((ele)=>({custId:ele.custId._id}))  
+      salesPersonIds:{salesPersId:row?.salesPersonIds?.salesPersId?._id}, 
+      customerIds:{custId:row?.customerIds?.custId?._id}  
     }
-    console.log(data)
     return data
   }
 
@@ -274,7 +228,7 @@ const Order = () => {
 
             <Formik
               initialValues={
-                selectedOrder && formatOnEdit(selectedOrder) || { orderNo: '', orderDate: '', orderAmount: '', salesPersonIds: [], customerIds: [] }
+                selectedOrder && formatOnEdit(selectedOrder) || { orderNo: '', orderDate: '', orderAmount: '', salesPersonIds: {}, customerIds: {} }
               }
               validationSchema={validationSchema}
               onSubmit={handleSubmit}
@@ -300,20 +254,21 @@ const Order = () => {
                   <Field name="orderAmount" className="w-full border px-3 py-2 rounded" />
                   <ErrorMessage name="orderAmount" component="div" className="text-red-500 text-sm" />
                 </div>
-                <MultiSelectField
-                    name="salesPersonIds"
-                    label="Sales Persons"
-                    options={salesPersons}
-                    keyId="salesPersId"
-                    keyName="salesPersonName"
+                <Dropdown
+                  name="salesPersonIds"
+                  label="Sales Person"
+                  options={salesPersons}
+                  keyId="salesPersId" 
+                  keyName="salesPersonName"
                 />
-                <MultiSelectField
-                    name="customerIds"
-                    label="Customer"
-                    options={customers} 
-                    keyId="custId"
-                    keyName="customerName"
-                />  
+
+                <Dropdown
+                  name="customerIds"
+                  label="Customer"
+                  options={customers}
+                  keyId="custId"
+                  keyName="customerName"
+                />
                 <div className="flex justify-end">
                   <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                     {selectedOrder ? 'Update' : 'Create'}
